@@ -15,6 +15,14 @@ class FR_Flickr_Crossload {
 	// @todo Use the Settings API to enter the API keys.
 	const FLICKR_API_KEY = 'eecaaa8988e695d830c14c2fe0b05b68';
 	const FLICKR_SECRET  = '547ea54436867736';
+	const FLICKR_API_URL = 'https://api.flickr.com/services/rest';
+
+	public static $api_defaults = array(
+		'api_key'        => FR_Flickr_Crossload::FLICKR_API_KEY,
+		'secret'         => FR_Flickr_Crossload::FLICKR_SECRET,
+		'format'         => 'json',
+		'nojsoncallback' => '1',
+	);
 
 	/**
 	 * Class constructor.
@@ -35,19 +43,14 @@ class FR_Flickr_Crossload {
 	 */
 	public static function flickr_api_magic( $content ) {
 		if ( is_page( 'flickr-test' ) ) {
-			$url = 'https://api.flickr.com/services/rest';
+			$body = array_merge( self::$api_defaults, array(
+				'method' => 'flickr.people.findByUsername',
+				'username' => 'pj',
+			) );
 			$args = array(
-				'httpversion' => '1.0',
-				'body' => array(
-					'method'         => 'flickr.people.findByUsername',
-					'api_key'        => FR_Flickr_Crossload::FLICKR_API_KEY,
-					'format'         => 'json',
-					'nojsoncallback' => '1',
-					'username'       => 'pj',
-				),
-
+				'body' => $body,
 			);
-			$response = wp_safe_remote_get( $url, $args );
+			$response = wp_safe_remote_get( FR_Flickr_Crossload::FLICKR_API_URL, $args );
 
 			_dump( str_replace( [ '<', '>' ], [ '&lt;', '&gt;' ], $response['body'] ) );
 		}

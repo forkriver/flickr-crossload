@@ -3,6 +3,8 @@
  * Plugin loader file.
  *
  * @package fork-river\flickr-crossload
+ * @link https://www.flickr.com/services/api/
+ * @link https://github.com/dan-coulter/phpflickr/
  */
 
 /**
