@@ -15,3 +15,6 @@
  */
 
 require 'class-flickr-crossload.php';
+if ( is_admin() ) {
+	require 'class-flickr-crossload-admin.php';
+}

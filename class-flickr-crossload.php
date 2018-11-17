@@ -12,17 +12,9 @@
  */
 class FR_Flickr_Crossload {
 
-	// @todo Use the Settings API to enter the API keys.
-	const FLICKR_API_KEY = 'eecaaa8988e695d830c14c2fe0b05b68';
-	const FLICKR_SECRET  = '547ea54436867736';
-	const FLICKR_API_URL = 'https://api.flickr.com/services/rest';
+	const PREFIX = '_frfc_';
 
-	public static $api_defaults = array(
-		'api_key'        => FR_Flickr_Crossload::FLICKR_API_KEY,
-		'secret'         => FR_Flickr_Crossload::FLICKR_SECRET,
-		'format'         => 'json',
-		'nojsoncallback' => '1',
-	);
+	const FLICKR_API_URL = 'https://api.flickr.com/services/rest';
 
 	/**
 	 * Class constructor.
@@ -55,6 +47,44 @@ class FR_Flickr_Crossload {
 			_dump( str_replace( [ '<', '>' ], [ '&lt;', '&gt;' ], $response['body'] ) );
 		}
 		return $content;
+	}
+
+	/* Helper monkeys. */
+
+	/**
+	 * Gets the Flickr API key.
+	 *
+	 * @return string The API key.
+	 * @since  1.0.0
+	 */
+	function get_api_key() {
+		return get_option( self::PREFIX . 'flickr_api_key', '' );
+	}
+
+	/**
+	 * Gets the Flickr secret key.
+	 *
+	 * @return string The secret key.
+	 * @since  1.0.0
+	 */
+	function get_secret() {
+		return get_option( self::PREFIX . 'flickr_secret', '' );
+	}
+
+	/**
+	 * Gets the API defaults.
+	 *
+	 * @return array The API defaults.
+	 * @since  1.0.0
+	 */
+	function get_defaults() {
+		$api_defaults = array(
+			'api_key'        => self::get_api_key(),
+			'secret'         => self::get_secret(),
+			'format'         => 'json',
+			'nojsoncallback' => '1',
+		);
+		return $api_defaults;
 	}
 
 }
