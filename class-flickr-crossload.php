@@ -17,6 +17,18 @@ class FR_Flickr_Crossload {
 	const FLICKR_API_URL = 'https://api.flickr.com/services/rest';
 
 	/**
+	 * Map:
+	 *  - Get Flickr user ID from username (flickr.people.findByUsername).
+	 *  - Get photos (flickr.people.getPhotos).
+	 *  - Get photo sizes (ie, the URLs for the sizes) (flickr.photos.getSizes).
+	 *  - Get photo info (flickr.photos.getInfo).
+	 *  - Get photo comments (flickr.photos.comments.getList).
+	 *  Once we have the necessary info, load the photo into the site's media gallery.
+	 *  Use title, description, and tags from the photo info.
+	 *  Also: This will need to be batched.
+	 */
+
+	/**
 	 * Class constructor.
 	 *
 	 * @return void
@@ -35,16 +47,30 @@ class FR_Flickr_Crossload {
 	 */
 	public static function flickr_api_magic( $content ) {
 		if ( is_page( 'flickr-test' ) ) {
-			$body = array_merge( self::$api_defaults, array(
-				'method' => 'flickr.people.findByUsername',
-				'username' => 'pj',
-			) );
+			$url = self::FLICKR_API_URL;
+			$body = array_merge(
+				self::get_defaults(),
+				array(
+					'method' => 'flickr.people.findByUsername',
+				)
+			);
 			$args = array(
 				'body' => $body,
 			);
-			$response = wp_safe_remote_get( FR_Flickr_Crossload::FLICKR_API_URL, $args );
-
-			_dump( str_replace( [ '<', '>' ], [ '&lt;', '&gt;' ], $response['body'] ) );
+			$response = wp_safe_remote_get( $url, $args );
+			if ( is_wp_error( $response ) ) {
+				wp_die( 'An error occurred. ' . __FILE__ . ': ' . __LINE__ );
+			}
+			$data = json_decode( $response['body'] );
+			$user_id = $data->user->nsid;
+			$args['body']['method']  = 'flickr.people.getPhotos';
+			$args['body']['user_id'] = $user_id;
+			$response = wp_safe_remote_get( $url, $args );
+			if ( is_wp_error( $response ) ) {
+				wp_die( 'An error occurred. ' . __FILE__ . ': ' . __LINE__ );
+			}
+			$data = json_decode( $response['body'] );
+			// @todo See list at top of page.
 		}
 		return $content;
 	}
@@ -52,37 +78,19 @@ class FR_Flickr_Crossload {
 	/* Helper monkeys. */
 
 	/**
-	 * Gets the Flickr API key.
-	 *
-	 * @return string The API key.
-	 * @since  1.0.0
-	 */
-	function get_api_key() {
-		return get_option( self::PREFIX . 'flickr_api_key', '' );
-	}
-
-	/**
-	 * Gets the Flickr secret key.
-	 *
-	 * @return string The secret key.
-	 * @since  1.0.0
-	 */
-	function get_secret() {
-		return get_option( self::PREFIX . 'flickr_secret', '' );
-	}
-
-	/**
 	 * Gets the API defaults.
 	 *
 	 * @return array The API defaults.
 	 * @since  1.0.0
 	 */
-	function get_defaults() {
-		$api_defaults = array(
-			'api_key'        => self::get_api_key(),
-			'secret'         => self::get_secret(),
-			'format'         => 'json',
-			'nojsoncallback' => '1',
+	public static function get_defaults() {
+		$settings = get_option( self::PREFIX . 'settings', array() );
+		$api_defaults = array_merge(
+			$settings,
+			array(
+				'format'         => 'json',
+				'nojsoncallback' => '1',
+			)
 		);
 		return $api_defaults;
 	}
