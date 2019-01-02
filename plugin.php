@@ -12,6 +12,7 @@
  * Description: Copy my photos from Flickr to WordPress.
  * Author Name: Patrick Johanneson
  * Version:     1.0.0
+ * License:     GPL v3 or higher
  */
 
 require 'class-flickr-crossload.php';
