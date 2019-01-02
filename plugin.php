@@ -4,7 +4,7 @@
  *
  * @package fork-river\flickr-crossload
  * @link https://www.flickr.com/services/api/
- * @link https://github.com/dan-coulter/phpflickr/
+ * @link https://github.com/samwilson/phpflickr
  */
 
 /**
