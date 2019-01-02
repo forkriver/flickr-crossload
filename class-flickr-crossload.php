@@ -75,6 +75,32 @@ class FR_Flickr_Crossload {
 		return $content;
 	}
 
+	/**
+	 * Gets the Flickr API keys.
+	 *
+	 * @param  boolean $all Get all the keys, or just the ones for reading?
+	 * @return array        An array containing the found API keys.
+	 * @since  1.0.0
+	 */
+	public static function get_api_keys( $all = false ) {
+		$key_names = array(
+			'api_key',
+			'access_token',
+		);
+		if ( true === $all ) {
+			$key_names[] = 'api_secret';
+			$key_names[] = 'access_token_secret';
+		}
+		$keys = array();
+		$option = get_option( self::PREFIX . 'api_keys', array() );
+		foreach( $key_names as $key_name ) {
+			if ( ! empty( $option[ $key_name ] ) ) {
+				$keys[ $key_name ] = $option[ $key_name ];
+			}
+		}
+		return $keys;
+	}
+
 	/* Helper monkeys. */
 
 	/**
