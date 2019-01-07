@@ -5,6 +5,9 @@
  * @package fork-river\crossload
  */
 
+require_once 'vendor/autoload.php';
+session_start();
+
 /**
  * Admin class.
  *
@@ -40,12 +43,39 @@ class FR_Flickr_Crossload_Admin {
 	 * @since  1.0.0
 	 */
 	function menu_cb() {
+		$settings = get_option( FR_Flickr_Crossload::PREFIX . 'settings', array() );
 		echo '<h1>Flickr Crossload settings</h1>';
 		echo '<form action="options.php" method="post">';
 		settings_fields( 'flickr_crossload' );
 		do_settings_sections( 'flickr_crossload' );
 		submit_button();
 		echo '</form>';
+
+		// Flickr authentication part.
+		// First, we check to see if the tokens are in the $_GET array.
+		if ( ! empty( $settings ) && ! empty( $settings['api_key'] ) && ! empty( $settings['api_secret'] ) ) {
+			$flickr = new \Samwilson\PhpFlickr\PhpFlickr( $settings['api_key'], $settings['api_secret'] );
+			$storage = new \OAuth\Common\Storage\Session();
+			$flickr->setOauthStorage( $storage );
+			if ( ! empty( $_GET ) && ! empty( $_GET['oauth_token'] ) && !empty( $_GET['oauth_verifier'] ) ) {
+				// Get the final token.
+				$token = $flickr->retrieveAccessToken( $_GET['oauth_verifier'], $_GET['oauth_token'] );
+				$settings['access_token'] = $token->getAccessToken();
+				$settings['access_token_secret'] = $token->getAccessTokenSecret();
+				update_option( FR_Flickr_Crossload::PREFIX . 'settings', $settings );
+			}
+
+			if ( empty( $settings['access_token'] ) || empty( $settings['access_token_secret'] ) ) {
+				echo '<h2>Flickr Authentication</h2>';
+				$perm = 'write';
+				$callback_url = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" ) . "://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+				$url = $flickr->getAuthUrl( $perm, $callback_url );
+				echo "<a href='{$url}'>Click to authenticate</a>";
+			} else {
+				echo '@todo: De-authenticate!';
+			}
+		}
+
 	}
 
 	/**
@@ -70,9 +100,9 @@ class FR_Flickr_Crossload_Admin {
 			FR_Flickr_Crossload::PREFIX . 'settings_section'
 		);
 		add_settings_field(
-			'secret',
+			'api_secret',
 			esc_html__( 'API Secret', 'frfc' ),
-			array( $this, 'secret_field_cb' ),
+			array( $this, 'api_secret_field_cb' ),
 			'flickr_crossload',
 			FR_Flickr_Crossload::PREFIX . 'settings_section'
 		);
@@ -101,14 +131,14 @@ class FR_Flickr_Crossload_Admin {
 	 * @return void
 	 * @since  1.0.0
 	 */
-	function secret_field_cb() {
+	function api_secret_field_cb() {
 		$option = get_option( FR_Flickr_Crossload::PREFIX . 'settings', array() );
-		if ( empty( $option ) || empty( $option['secret'] ) ) {
+		if ( empty( $option ) || empty( $option['api_secret'] ) ) {
 			$value = '';
 		} else {
-			$value = $option['secret'];
+			$value = $option['api_secret'];
 		}
-		echo "<input type='text' size='40' name='" . FR_Flickr_Crossload::PREFIX . 'settings[secret]' . "' value='$value' />"; // wpcs: xss ok.
+		echo "<input type='text' size='40' name='" . FR_Flickr_Crossload::PREFIX . 'settings[api_secret]' . "' value='$value' />"; // wpcs: xss ok.
 	}
 
 	/**

@@ -5,6 +5,8 @@
  * @package fork-river\flickr-crossload
  */
 
+require_once 'vendor/autoload.php';
+
 /**
  * Core class.
  *
@@ -52,6 +54,7 @@ class FR_Flickr_Crossload {
 				self::get_defaults(),
 				array(
 					'method' => 'flickr.people.findByUsername',
+					'username' => 'Patrick Johanneson',
 				)
 			);
 			$args = array(
@@ -62,16 +65,56 @@ class FR_Flickr_Crossload {
 				wp_die( 'An error occurred. ' . __FILE__ . ': ' . __LINE__ );
 			}
 			$data = json_decode( $response['body'] );
-			$user_id = $data->user->nsid;
-			$args['body']['method']  = 'flickr.people.getPhotos';
-			$args['body']['user_id'] = $user_id;
-			$response = wp_safe_remote_get( $url, $args );
-			if ( is_wp_error( $response ) ) {
-				wp_die( 'An error occurred. ' . __FILE__ . ': ' . __LINE__ );
+
+			// OK, the above is probably unnecessary.
+			$settings = get_option( FR_Flickr_Crossload::PREFIX . 'settings', array() );
+			if ( ! empty( $settings ) && ! empty( $settings['access_token'] ) ) {
+
+				$flickr = new \Samwilson\PhpFlickr\PhpFlickr( $settings['api_key'], $settings['api_secret'] );
+				// Create storage.
+				$storage = new \OAuth\Common\Storage\Memory();
+				// Create the access token from the strings you acquired before.
+				$token = new \OAuth\OAuth1\Token\StdOAuth1Token();
+				$token->setAccessToken( $settings['access_token'] );
+				$token->setAccessTokenSecret( $settings['access_token_secret'] );
+				// Add the token to the storage.
+				$storage->storeAccessToken( 'Flickr', $token );
+				$flickr->setOauthStorage( $storage );
+
+				// All the `getPhotos() params.
+				// Docs: @link https://www.flickr.com/services/api/flickr.people.getPhotos.html
+				$user_id         = 'me';
+				$safe_search     = null;
+				$min_upload_date = null;
+				$max_upload_date = null;
+				$min_taken_date  = null;
+				$max_taken_date  = null;
+				$content_type    = null;
+				$privacy_filter  = null;
+				$extras          = 'description, license, date_upload, date_taken, owner_name, icon_server, original_format, last_update, geo, tags, machine_tags, o_dims, views, media, path_alias, url_sq, url_t, url_s, url_q, url_m, url_n, url_z, url_c, url_l, url_o';
+				$per_page        = 100;
+				$page            = 1;
+				if ( ! empty( $_GET['photo_page'] ) ) {
+					$page = absint( $_GET['photo_page'] );
+				}
+
+				$photos = $flickr->people()->getPhotos(
+					$user_id,
+					$safe_search,
+					$min_upload_date,
+					$max_upload_date,
+					$min_taken_date,
+					$max_taken_date,
+					$content_type,
+					$privacy_filter,
+					$extras,
+					$per_page,
+					$page
+				);
+				_dump( $photos );
 			}
-			$data = json_decode( $response['body'] );
-			// @todo See list at top of page.
 		}
+
 		return $content;
 	}
 
@@ -92,7 +135,7 @@ class FR_Flickr_Crossload {
 			$key_names[] = 'access_token_secret';
 		}
 		$keys = array();
-		$option = get_option( self::PREFIX . 'api_keys', array() );
+		$option = get_option( self::PREFIX . 'settings', array() );
 		foreach( $key_names as $key_name ) {
 			if ( ! empty( $option[ $key_name ] ) ) {
 				$keys[ $key_name ] = $option[ $key_name ];
